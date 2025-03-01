@@ -6,41 +6,42 @@ class Character:
         self.rect = pygame.Rect(x, y, width, height)
         self.color = color
         self.health = 100
-        self.speed = 5
-        self.jump_power = 10
-        self.y_velocity = 0
-        self.is_jumping = False
+        self.jumping = False
+        self.jump_count = 10
 
     def move(self, dx):
-        self.rect.x += dx * self.speed
+        self.rect.x += dx
 
     def jump(self):
-        if not self.is_jumping:
-            self.is_jumping = True
-            self.y_velocity = -self.jump_power
+        if not self.jumping:
+            self.jumping = True
 
     def update(self):
-        if self.is_jumping:
-            self.rect.y += self.y_velocity
-            self.y_velocity += 0.5
-            if self.rect.y >= 300:  # Ground level
-                self.rect.y = 300
-                self.is_jumping = False
-                self.y_velocity = 0
+        if self.jumping:
+            if self.jump_count >= -10:
+                neg = 1
+                if self.jump_count < 0:
+                    neg = -1
+                self.rect.y -= (self.jump_count ** 2) * 0.5 * neg
+                self.jump_count -= 1
+            else:
+                self.jumping = False
+                self.jump_count = 10
 
-    def punch(self):
-        return random.randint(5, 15)
+    def punch(self, other):
+        damage = random.randint(5, 15)
+        other.health -= damage
+        return damage
 
-    def kick(self):
-        return random.randint(7, 20)
+    def kick(self, other):
+        damage = random.randint(10, 20)
+        other.health -= damage
+        return damage
 
-    def special_move(self):
-        return random.randint(10, 25)
-
-    def take_damage(self, damage):
-        self.health -= damage
-        if self.health < 0:
-            self.health = 0
+    def special_move(self, other):
+        damage = random.randint(15, 25)
+        other.health -= damage
+        return damage
 
     def draw(self, screen):
         pygame.draw.rect(screen, self.color, self.rect)
