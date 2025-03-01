@@ -15,8 +15,9 @@ class Character:
     def jump(self):
         if not self.jumping:
             self.jumping = True
+            self.jump_count = 10
 
-    def update(self):
+    def update_jump(self):
         if self.jumping:
             if self.jump_count >= -10:
                 neg = 1
@@ -26,22 +27,21 @@ class Character:
                 self.jump_count -= 1
             else:
                 self.jumping = False
-                self.jump_count = 10
 
     def punch(self, other):
-        damage = random.randint(5, 15)
-        other.health -= damage
-        return damage
+        if self.rect.colliderect(other.rect):
+            damage = random.randint(5, 10)
+            other.health -= damage
 
     def kick(self, other):
-        damage = random.randint(10, 20)
-        other.health -= damage
-        return damage
+        if self.rect.colliderect(other.rect):
+            damage = random.randint(7, 15)
+            other.health -= damage
 
     def special_move(self, other):
-        damage = random.randint(15, 25)
-        other.health -= damage
-        return damage
+        if self.rect.colliderect(other.rect):
+            damage = random.randint(10, 20)
+            other.health -= damage
 
     def draw(self, screen):
         pygame.draw.rect(screen, self.color, self.rect)
