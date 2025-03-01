@@ -2,23 +2,21 @@ import pygame
 import random
 
 class Character:
-    def __init__(self, x, y, width, height, color):
+    def __init__(self, x, y, width, height):
         self.rect = pygame.Rect(x, y, width, height)
-        self.color = color
         self.health = 100
-        self.speed = 5
         self.jumping = False
         self.jump_count = 10
 
     def move(self, dx):
-        self.rect.x += dx * self.speed
+        self.rect.x += dx
 
     def jump(self):
         if not self.jumping:
             self.jumping = True
             self.jump_count = 10
 
-    def update(self):
+    def update_jump(self):
         if self.jumping:
             if self.jump_count >= -10:
                 neg = 1
@@ -30,18 +28,10 @@ class Character:
                 self.jumping = False
 
     def punch(self):
-        return random.randint(5, 10)
+        return random.randint(5, 15)
 
     def kick(self):
-        return random.randint(7, 12)
+        return random.randint(10, 20)
 
     def special_move(self):
-        return random.randint(15, 20)
-
-    def take_damage(self, damage):
-        self.health -= damage
-        if self.health < 0:
-            self.health = 0
-
-    def draw(self, screen):
-        pygame.draw.rect(screen, self.color, self.rect)
+        return random.randint(15, 25)
