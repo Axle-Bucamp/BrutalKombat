@@ -4,15 +4,19 @@ from enum import Enum
 
 # Placeholder for AR library
 class ARCore:
+    @staticmethod
     def initialize():
         print("AR initialized")
 
+    @staticmethod
     def begin_frame():
         print("AR frame begun")
 
+    @staticmethod
     def end_frame():
         print("AR frame ended")
 
+    @staticmethod
     def render_model(model, position):
         print(f"Rendering {model} at {position}")
 
@@ -23,7 +27,7 @@ ARCore.initialize()
 # Screen setup
 SCREEN_WIDTH = 800
 SCREEN_HEIGHT = 600
-screen = pygame.display.set_mode((SCREEN_WIDTH, SCREEN_HEIGHT))
+screen = pygame.display.set_mode((SCREEN_WIDTH, SCREEN_HEIGHT), pygame.RESIZABLE)
 pygame.display.set_caption("Burger King AR Fighter")
 
 # Colors
@@ -69,6 +73,7 @@ class Fighter:
         self.ar_model = ar_model
         self.health = 100
         self.position = [SCREEN_WIDTH // 2, SCREEN_HEIGHT // 2, 0]  # x, y, z
+        self.special_move_cooldown = 0
 
     def move(self, dx, dy, dz):
         self.position[0] += dx
@@ -79,6 +84,19 @@ class Fighter:
         damage = random.randint(5, 15)
         other.health -= damage
         print(f"{self.name} attacks {other.name} for {damage} damage!")
+
+    def special_move(self, other):
+        if self.special_move_cooldown == 0:
+            damage = random.randint(20, 30)
+            other.health -= damage
+            print(f"{self.name} uses {self.ar_model['special_move']} on {other.name} for {damage} damage!")
+            self.special_move_cooldown = 5
+        else:
+            print(f"{self.name}'s special move is on cooldown!")
+
+    def update(self):
+        if self.special_move_cooldown > 0:
+            self.special_move_cooldown -= 1
 
 def draw_menu(screen):
     screen.fill(BLACK)
@@ -97,70 +115,77 @@ def draw_menu(screen):
         text = font.render(option, True, WHITE)
         screen.blit(text, (SCREEN_WIDTH // 2 - text.get_width() // 2, 150 + i * 50))
 
+def handle_touch_events(game_state, player, other):
+    for event in pygame.event.get():
+        if event.type == pygame.QUIT:
+            return False
+        elif event.type == pygame.FINGERDOWN:
+            x, y = event.x * SCREEN_WIDTH, event.y * SCREEN_HEIGHT
+            if game_state == GameState.MENU:
+                if 150 <= y <= 350:
+                    return int((y - 150) / 50) + 1
+            elif game_state == GameState.PLAY_GAME:
+                if y < SCREEN_HEIGHT / 2:
+                    player.attack(other)
+                else:
+                    player.special_move(other)
+    return None
+
 def main():
     clock = pygame.time.Clock()
     game_state = GameState.MENU
 
     player = Fighter("Player", generate_ar_model(Character.BURGER_KING))
-    opponent = Fighter("Opponent", generate_ar_model(Character.JEAN_MICHEL))
+    other = Fighter("Other", generate_ar_model(Character.JEAN_MICHEL))
 
-    running = True
-    while running:
-        for event in pygame.event.get():
-            if event.type == pygame.QUIT:
-                running = False
-            elif event.type == pygame.KEYDOWN:
-                if game_state == GameState.MENU:
-                    if event.key == pygame.K_1:
-                        game_state = GameState.AR_MODELING
-                        print("Entered AR Modeling Menu")
-                    elif event.key == pygame.K_2:
-                        game_state = GameState.PLAY_GAME
-                        print("Starting Game")
-                    elif event.key == pygame.K_3:
-                        game_state = GameState.EDIT_SCENE
-                        print("Entered Scene Editor")
-                    elif event.key == pygame.K_4:
-                        game_state = GameState.BUY_ASSET
-                        print("Entered Asset Store")
-                    elif event.key == pygame.K_5:
-                        running = False
-                elif game_state == GameState.PLAY_GAME:
-                    if event.key == pygame.K_ESCAPE:
-                        game_state = GameState.MENU
-                    elif event.key == pygame.K_LEFT:
-                        player.move(-10, 0, 0)
-                    elif event.key == pygame.K_RIGHT:
-                        player.move(10, 0, 0)
-                    elif event.key == pygame.K_UP:
-                        player.move(0, -10, 0)
-                    elif event.key == pygame.K_DOWN:
-                        player.move(0, 10, 0)
-                    elif event.key == pygame.K_SPACE:
-                        player.attack(opponent)
+    while True:
+        action = handle_touch_events(game_state, player, other)
+        if action is False:
+            return
+        elif action:
+            if action == 1:
+                game_state = GameState.AR_MODELING
+            elif action == 2:
+                game_state = GameState.PLAY_GAME
+            elif action == 3:
+                game_state = GameState.EDIT_SCENE
+            elif action == 4:
+                game_state = GameState.BUY_ASSET
+            elif action == 5:
+                return
+
+        screen.fill(BLACK)
 
         if game_state == GameState.MENU:
             draw_menu(screen)
         elif game_state == GameState.PLAY_GAME:
-            # Game logic
             ARCore.begin_frame()
-            
-            screen.fill(BLACK)
             
             # Render AR models
             ARCore.render_model(player.ar_model, player.position)
-            ARCore.render_model(opponent.ar_model, opponent.position)
+            ARCore.render_model(other.ar_model, other.position)
             
             # Draw health bars
             pygame.draw.rect(screen, RED, (10, 10, player.health * 2, 20))
-            pygame.draw.rect(screen, RED, (SCREEN_WIDTH - 210, 10, opponent.health * 2, 20))
+            pygame.draw.rect(screen, RED, (SCREEN_WIDTH - 210, 10, other.health * 2, 20))
+            
+            # Update fighters
+            player.update()
+            other.update()
             
             ARCore.end_frame()
+        elif game_state == GameState.AR_MODELING:
+            text = font.render("AR Modeling Menu (Not Implemented)", True, WHITE)
+            screen.blit(text, (SCREEN_WIDTH // 2 - text.get_width() // 2, SCREEN_HEIGHT // 2))
+        elif game_state == GameState.EDIT_SCENE:
+            text = font.render("Edit Scene (Not Implemented)", True, WHITE)
+            screen.blit(text, (SCREEN_WIDTH // 2 - text.get_width() // 2, SCREEN_HEIGHT // 2))
+        elif game_state == GameState.BUY_ASSET:
+            text = font.render("Buy Asset (Not Implemented)", True, WHITE)
+            screen.blit(text, (SCREEN_WIDTH // 2 - text.get_width() // 2, SCREEN_HEIGHT // 2))
 
         pygame.display.flip()
         clock.tick(60)
-
-    pygame.quit()
 
 if __name__ == "__main__":
     main()
