@@ -1,95 +1,82 @@
+import arcore
 import pygame
 import random
-from character import Character
 
-# Initialize Pygame
+# Initialize Pygame and ARCore
 pygame.init()
+arcore.init()
 
 # Set up the display
-WIDTH, HEIGHT = 800, 600
-screen = pygame.display.set_mode((WIDTH, HEIGHT))
-pygame.display.set_caption("Burger King Street Fighter")
+SCREEN_WIDTH = 800
+SCREEN_HEIGHT = 600
+screen = pygame.display.set_mode((SCREEN_WIDTH, SCREEN_HEIGHT))
+pygame.display.set_caption("3D AR Fighting Game")
 
-# Colors
-WHITE = (255, 255, 255)
-RED = (255, 0, 0)
-GREEN = (0, 255, 0)
-BLACK = (0, 0, 0)
+# AR Model Generation
+def generate_ar_model(model_name):
+    """
+    Generate an AR model for the game.
+    This is a placeholder function and should be implemented with actual AR model generation logic.
+    """
+    print(f"Generating AR model: {model_name}")
+    # Placeholder for AR model generation logic
+    return arcore.Model(model_name)
 
-# Create characters
-player1 = Character(100, HEIGHT - 100, RED)
-player2 = Character(WIDTH - 200, HEIGHT - 100, GREEN)
+# Game objects
+class Fighter:
+    def __init__(self, name, model):
+        self.name = name
+        self.model = model
+        self.health = 100
+        self.position = [0, 0, 0]
 
-# Game variables
-clock = pygame.time.Clock()
-game_over = False
-round_time = 60 * 1000  # 60 seconds in milliseconds
-start_time = pygame.time.get_ticks()
+    def move(self, dx, dy, dz):
+        self.position[0] += dx
+        self.position[1] += dy
+        self.position[2] += dz
 
-def draw_health_bars():
-    pygame.draw.rect(screen, RED, (50, 30, player1.health * 2, 20))
-    pygame.draw.rect(screen, GREEN, (WIDTH - 250, 30, player2.health * 2, 20))
+    def attack(self, other):
+        damage = random.randint(5, 15)
+        other.health -= damage
+        print(f"{self.name} attacks {other.name} for {damage} damage!")
 
-def draw_timer():
-    font = pygame.font.Font(None, 36)
-    time_left = max(round_time - (pygame.time.get_ticks() - start_time), 0)
-    timer_text = font.render(f"Time: {time_left // 1000}", True, WHITE)
-    screen.blit(timer_text, (WIDTH // 2 - 50, 30))
-
-def ai_action(player):
-    action = random.choice(["move", "attack", "jump"])
-    if action == "move":
-        direction = random.choice([-1, 1])
-        player.move(direction)
-    elif action == "attack":
-        attack_type = random.choice(["punch", "kick", "special"])
-        if attack_type == "punch":
-            player.punch()
-        elif attack_type == "kick":
-            player.kick()
-        else:
-            player.special_move()
-    elif action == "jump":
-        player.jump()
+# Game setup
+player = Fighter("Player", generate_ar_model("player_model"))
+opponent = Fighter("Opponent", generate_ar_model("opponent_model"))
 
 # Main game loop
-while not game_over:
+running = True
+clock = pygame.time.Clock()
+
+while running:
     for event in pygame.event.get():
         if event.type == pygame.QUIT:
-            game_over = True
+            running = False
 
-    screen.fill(BLACK)
+    # Update game state
+    keys = pygame.key.get_pressed()
+    if keys[pygame.K_LEFT]:
+        player.move(-0.1, 0, 0)
+    if keys[pygame.K_RIGHT]:
+        player.move(0.1, 0, 0)
+    if keys[pygame.K_UP]:
+        player.move(0, 0, -0.1)
+    if keys[pygame.K_DOWN]:
+        player.move(0, 0, 0.1)
+    if keys[pygame.K_SPACE]:
+        player.attack(opponent)
 
-    # AI actions
-    ai_action(player1)
-    ai_action(player2)
+    # Render AR scene
+    arcore.begin_ar_frame()
+    # Render AR models and update their positions
+    arcore.render_model(player.model, player.position)
+    arcore.render_model(opponent.model, opponent.position)
+    arcore.end_ar_frame()
 
-    # Update characters
-    player1.update()
-    player2.update()
-
-    # Draw characters
-    player1.draw(screen)
-    player2.draw(screen)
-
-    # Draw health bars and timer
-    draw_health_bars()
-    draw_timer()
-
-    # Check for game over conditions
-    current_time = pygame.time.get_ticks()
-    if current_time - start_time >= round_time or player1.health <= 0 or player2.health <= 0:
-        game_over = True
-        font = pygame.font.Font(None, 72)
-        if player1.health > player2.health:
-            winner_text = font.render("Player 1 Wins!", True, WHITE)
-        elif player2.health > player1.health:
-            winner_text = font.render("Player 2 Wins!", True, WHITE)
-        else:
-            winner_text = font.render("It's a Draw!", True, WHITE)
-        screen.blit(winner_text, (WIDTH // 2 - 150, HEIGHT // 2 - 36))
-
+    # Update display
     pygame.display.flip()
     clock.tick(60)
 
+# Cleanup
+arcore.quit()
 pygame.quit()
