@@ -2,190 +2,157 @@ import pygame
 import random
 from enum import Enum
 
-# Placeholder for AR library
-class ARCore:
-    @staticmethod
-    def initialize():
-        print("AR initialized")
-
-    @staticmethod
-    def begin_frame():
-        print("AR frame begun")
-
-    @staticmethod
-    def end_frame():
-        print("AR frame ended")
-
-    @staticmethod
-    def render_model(model, position):
-        print(f"Rendering {model} at {position}")
-
-# Initialize Pygame and AR
+# Initialize Pygame
 pygame.init()
-ARCore.initialize()
 
-# Screen setup
+# Set up the display
 SCREEN_WIDTH = 800
 SCREEN_HEIGHT = 600
-screen = pygame.display.set_mode((SCREEN_WIDTH, SCREEN_HEIGHT), pygame.RESIZABLE)
+screen = pygame.display.set_mode((SCREEN_WIDTH, SCREEN_HEIGHT), pygame.FULLSCREEN | pygame.RESIZABLE)
 pygame.display.set_caption("Burger King AR Fighter")
 
 # Colors
 WHITE = (255, 255, 255)
-BLACK = (0, 0, 0)
 RED = (255, 0, 0)
+GREEN = (0, 255, 0)
+BLUE = (0, 0, 255)
+CYAN = (0, 255, 255)
 
-# Fonts
-font = pygame.font.Font(None, 36)
-
+# Game states
 class GameState(Enum):
     MENU = 1
-    AR_MODELING = 2
-    PLAY_GAME = 3
+    PLAY_GAME = 2
+    AR_MODELING = 3
     EDIT_SCENE = 4
     BUY_ASSET = 5
 
-class Character(Enum):
-    BURGER_KING = 1
-    JEAN_MICHEL = 2
-
-def generate_ar_model(character):
-    if character == Character.BURGER_KING:
-        return {
-            "name": "Burger King",
-            "head": "crown",
-            "body": "royal_robe",
-            "weapon": "giant_burger",
-            "special_move": "flame_broil"
-        }
-    elif character == Character.JEAN_MICHEL:
-        return {
-            "name": "Jean-Michel",
-            "head": "beret",
-            "body": "striped_shirt",
-            "weapon": "baguette",
-            "special_move": "fromage_toss"
-        }
-
+# Fighter class
 class Fighter:
-    def __init__(self, name, ar_model):
+    def __init__(self, name, x, y):
         self.name = name
-        self.ar_model = ar_model
+        self.x = x
+        self.y = y
         self.health = 100
-        self.position = [SCREEN_WIDTH // 2, SCREEN_HEIGHT // 2, 0]  # x, y, z
         self.special_move_cooldown = 0
 
-    def move(self, dx, dy, dz):
-        self.position[0] += dx
-        self.position[1] += dy
-        self.position[2] += dz
+    def move(self, dx, dy):
+        self.x += dx
+        self.y += dy
 
     def attack(self, other):
         damage = random.randint(5, 15)
         other.health -= damage
-        print(f"{self.name} attacks {other.name} for {damage} damage!")
+        return damage
 
     def special_move(self, other):
         if self.special_move_cooldown == 0:
             damage = random.randint(20, 30)
             other.health -= damage
-            print(f"{self.name} uses {self.ar_model['special_move']} on {other.name} for {damage} damage!")
-            self.special_move_cooldown = 5
-        else:
-            print(f"{self.name}'s special move is on cooldown!")
+            self.special_move_cooldown = 60  # Set cooldown to 60 frames (1 second at 60 FPS)
+            return damage
+        return 0
 
     def update(self):
         if self.special_move_cooldown > 0:
             self.special_move_cooldown -= 1
 
+# Function to handle touch events
+def handle_touch_events(event, current_state, fighters):
+    if event.type == pygame.FINGERDOWN:
+        x, y = event.x * SCREEN_WIDTH, event.y * SCREEN_HEIGHT
+        if current_state == GameState.MENU:
+            # Handle menu touch events
+            if 200 <= x <= 600:
+                if 100 <= y <= 150:
+                    return GameState.AR_MODELING
+                elif 200 <= y <= 250:
+                    return GameState.PLAY_GAME
+                elif 300 <= y <= 350:
+                    return GameState.EDIT_SCENE
+                elif 400 <= y <= 450:
+                    return GameState.BUY_ASSET
+                elif 500 <= y <= 550:
+                    return None  # Quit
+        elif current_state == GameState.PLAY_GAME:
+            # Handle gameplay touch events
+            if y < SCREEN_HEIGHT / 2:
+                fighters[0].attack(fighters[1])
+            else:
+                fighters[0].special_move(fighters[1])
+    return current_state
+
+# Function to draw the menu
 def draw_menu(screen):
-    screen.fill(BLACK)
-    title = font.render("Burger King AR Fighter", True, WHITE)
-    screen.blit(title, (SCREEN_WIDTH // 2 - title.get_width() // 2, 50))
-
-    options = [
-        "1. AR Modeling Menu",
-        "2. Play Game",
-        "3. Edit Scene",
-        "4. Buy Asset",
-        "5. Quit"
-    ]
-
+    screen.fill(WHITE)
+    font = pygame.font.Font(None, 36)
+    options = ["AR Modeling", "Play Game", "Edit Scene", "Buy Asset", "Quit"]
     for i, option in enumerate(options):
-        text = font.render(option, True, WHITE)
-        screen.blit(text, (SCREEN_WIDTH // 2 - text.get_width() // 2, 150 + i * 50))
+        text = font.render(option, True, BLUE)
+        screen.blit(text, (300, 100 + i * 100))
 
-def handle_touch_events(game_state, player, other):
-    for event in pygame.event.get():
-        if event.type == pygame.QUIT:
-            return False
-        elif event.type == pygame.FINGERDOWN:
-            x, y = event.x * SCREEN_WIDTH, event.y * SCREEN_HEIGHT
-            if game_state == GameState.MENU:
-                if 150 <= y <= 350:
-                    return int((y - 150) / 50) + 1
-            elif game_state == GameState.PLAY_GAME:
-                if y < SCREEN_HEIGHT / 2:
-                    player.attack(other)
-                else:
-                    player.special_move(other)
-    return None
+# Function to generate AR model (placeholder)
+def generate_ar_model(character):
+    print(f"Generating AR model for {character}")
+    if character == "Burger King":
+        print("Special move: Flame Broil - Unleashes a fiery attack")
+    elif character == "Jean-Michel":
+        print("Special move: Fromage Toss - Throws a powerful cheese projectile")
 
+# Main game loop
 def main():
     clock = pygame.time.Clock()
-    game_state = GameState.MENU
+    current_state = GameState.MENU
+    burger_king = Fighter("Burger King", 100, 300)
+    jean_michel = Fighter("Jean-Michel", 700, 300)
+    fighters = [burger_king, jean_michel]
 
-    player = Fighter("Player", generate_ar_model(Character.BURGER_KING))
-    other = Fighter("Other", generate_ar_model(Character.JEAN_MICHEL))
+    running = True
+    while running:
+        for event in pygame.event.get():
+            if event.type == pygame.QUIT:
+                running = False
+            elif event.type == pygame.KEYDOWN:
+                if event.key == pygame.K_ESCAPE:
+                    current_state = GameState.MENU
+            
+            new_state = handle_touch_events(event, current_state, fighters)
+            if new_state is not None:
+                current_state = new_state
+            elif new_state is None:
+                running = False
 
-    while True:
-        action = handle_touch_events(game_state, player, other)
-        if action is False:
-            return
-        elif action:
-            if action == 1:
-                game_state = GameState.AR_MODELING
-            elif action == 2:
-                game_state = GameState.PLAY_GAME
-            elif action == 3:
-                game_state = GameState.EDIT_SCENE
-            elif action == 4:
-                game_state = GameState.BUY_ASSET
-            elif action == 5:
-                return
+        screen.fill(WHITE)
 
-        screen.fill(BLACK)
-
-        if game_state == GameState.MENU:
+        if current_state == GameState.MENU:
             draw_menu(screen)
-        elif game_state == GameState.PLAY_GAME:
-            ARCore.begin_frame()
-            
-            # Render AR models
-            ARCore.render_model(player.ar_model, player.position)
-            ARCore.render_model(other.ar_model, other.position)
-            
+        elif current_state == GameState.PLAY_GAME:
+            # Draw fighters
+            pygame.draw.rect(screen, RED, (burger_king.x, burger_king.y, 50, 100))
+            pygame.draw.rect(screen, BLUE, (jean_michel.x, jean_michel.y, 50, 100))
+
             # Draw health bars
-            pygame.draw.rect(screen, RED, (10, 10, player.health * 2, 20))
-            pygame.draw.rect(screen, RED, (SCREEN_WIDTH - 210, 10, other.health * 2, 20))
-            
+            pygame.draw.rect(screen, GREEN, (50, 50, burger_king.health * 2, 20))
+            pygame.draw.rect(screen, GREEN, (550, 50, jean_michel.health * 2, 20))
+
+            # Draw special move cooldown bars
+            cooldown_width = (60 - burger_king.special_move_cooldown) * 2
+            pygame.draw.rect(screen, CYAN, (50, 80, cooldown_width, 10))
+            cooldown_width = (60 - jean_michel.special_move_cooldown) * 2
+            pygame.draw.rect(screen, CYAN, (550, 80, cooldown_width, 10))
+
             # Update fighters
-            player.update()
-            other.update()
-            
-            ARCore.end_frame()
-        elif game_state == GameState.AR_MODELING:
-            text = font.render("AR Modeling Menu (Not Implemented)", True, WHITE)
-            screen.blit(text, (SCREEN_WIDTH // 2 - text.get_width() // 2, SCREEN_HEIGHT // 2))
-        elif game_state == GameState.EDIT_SCENE:
-            text = font.render("Edit Scene (Not Implemented)", True, WHITE)
-            screen.blit(text, (SCREEN_WIDTH // 2 - text.get_width() // 2, SCREEN_HEIGHT // 2))
-        elif game_state == GameState.BUY_ASSET:
-            text = font.render("Buy Asset (Not Implemented)", True, WHITE)
-            screen.blit(text, (SCREEN_WIDTH // 2 - text.get_width() // 2, SCREEN_HEIGHT // 2))
+            for fighter in fighters:
+                fighter.update()
+
+        elif current_state == GameState.AR_MODELING:
+            generate_ar_model("Burger King")
+            generate_ar_model("Jean-Michel")
+            current_state = GameState.MENU
 
         pygame.display.flip()
         clock.tick(60)
+
+    pygame.quit()
 
 if __name__ == "__main__":
     main()
